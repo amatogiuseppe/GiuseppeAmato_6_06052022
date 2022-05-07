@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 
+const sauceRoutes = require('./routes/sauce')
+
 mongoose.connect('mongodb+srv://joe:lxdWWx7loKn9ul9v@cluster0.olfbz.mongodb.net/myFirstDatabase?retryWrites=true&w=majority',
   { useNewUrlParser: true,
     useUnifiedTopology: true })
@@ -16,18 +18,8 @@ app.use((req, res, next) => {
   next();
 });
 
-/*
 app.use(express.json());
 
-app.post('/', (req, res, next) => {
-  console.log(req.body);
-  res.status(201).json({ message: 'Objet crée !' });
-  next();
-})
-*/
-
-app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Votre requête a bien été reçue !' });
-});
+app.use('/api/sauce', sauceRoutes);
 
 module.exports = app;
