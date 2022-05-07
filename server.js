@@ -1,3 +1,8 @@
+//================================================================================
+//  Development Server
+//================================================================================
+
+// Required modules
 const http = require('http');
 const app = require('./app');
 
@@ -37,6 +42,7 @@ const errorHandler = error => {
   }
 };
 
+// Declaring the development server
 const server = http.createServer(app);
 
 // An event listener that logs the port or named channel on which the server is running in the console
