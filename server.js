@@ -9,7 +9,6 @@ const app = require('./app');
 // The normalizePort function returns a valid port, whether supplied as a number or a string
 const normalizePort = val => {
   const port = parseInt(val, 10);
-
   if (isNaN(port)) {
     return val;
   }
