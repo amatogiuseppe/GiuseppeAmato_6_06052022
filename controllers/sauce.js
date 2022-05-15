@@ -13,7 +13,6 @@ const fs = require('fs');
 exports.createSauce = (req, res, next) => {
   // turning a string object into a usable object
   const sauceObject = JSON.parse(req.body.sauce);
-  delete sauceObject._id;
   // creating the new sauce
   const sauce = new Sauce({
     ...sauceObject,
@@ -21,7 +20,7 @@ exports.createSauce = (req, res, next) => {
   });
   // saving the new sauce in the database
   sauce.save()
-    .then(() => res.status(201).json({ message: 'Sauce enregistrée !'}))
+    .then(() => res.status(201).json({ message: 'The sauce was successfully saved!'}))
     .catch(error => res.status(400).json({ error }));
 };
 
@@ -30,6 +29,40 @@ exports.createSauce = (req, res, next) => {
 //  Liking the sauce
 //------------------------------------
 exports.likeSauce = (req, res, next) => {
+  Sauce.findOne({ _id: req.params.id })
+    .then( sauce => {
+      // Case 1: the user puts a like
+      if (req.body.like == 1) {
+        if (!sauce.usersLiked.includes(req.body.userId) && !sauce.usersDisliked.includes(req.body.userId)) {
+          sauce.usersLiked.push(req.body.userId);
+          sauce.likes++;
+        }
+      }
+      // Case 2: the user removes his like or dislike
+      if (req.body.like == 0) {
+        if (sauce.usersLiked.includes(req.body.userId)) {
+          let usersLikedIndex = sauce.usersLiked.indexOf(req.body.userId);
+          sauce.usersLiked.splice(usersLikedIndex, 1);
+          sauce.likes--;
+        } else if (sauce.usersDisliked.includes(req.body.userId)) {
+          let usersDislikedIndex = sauce.usersDisliked.indexOf(req.body.userId);
+          sauce.usersDisliked.splice(usersDislikedIndex, 1);
+          sauce.dislikes--;
+        }
+      }
+      // Case 3: the user puts a dislike
+      if (req.body.like == -1) {
+        if (!sauce.usersLiked.includes(req.body.userId) && !sauce.usersDisliked.includes(req.body.userId)) {
+          sauce.usersDisliked.push(req.body.userId);
+          sauce.dislikes++;
+        }
+      }
+      // Updating the sauce
+      Sauce.updateOne({ _id: req.params.id }, sauce)
+        .then(() => res.status(200).json({ message: "The opinion about the sauce has been taken into account!"}))
+        .catch(error => res.status(400).json({ error }));
+    })
+    .catch(error => res.status(500).json({ error }));
 };
 
 
@@ -37,20 +70,31 @@ exports.likeSauce = (req, res, next) => {
 //  Modifying the sauce
 //------------------------------------
 exports.modifySauce = (req, res, next) => {
-  // A sauceObject is created that checks whether or not req.file exists
-  const sauceObject = req.file ?
-    // Case 1: if it does exist, it processes the new image
-    {
-      ...JSON.parse(req.body.sauce),
-      imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
-    }
-    // Case 2: if it does not, it simply processes the incoming object
-    : { ...req.body };
-  // Updating the sauce
-  Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id })
-    .then(() => res.status(200).json({ message: 'Sauce modifiée !'}))
+  // Case 1: the user may upload a new image along with the sauce information
+  if (req.file) {
+    Sauce.findOne({ _id: req.params.id })
+      .then(sauce => {
+        const filename = sauce.imageUrl.split('/images/')[1];
+        fs.unlink(`images/${filename}`, () => {
+          const sauceObject = {
+            ...JSON.parse(req.body.sauce),
+            imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+          };
+          Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id })
+            .then(() => res.status(200).json({ message: 'The sauce has been updated with the new image!'}))
+            .catch(error => res.status(400).json({ error }));
+        });
+      })
+      .catch(error => res.status(500).json({ error }));
+  }
+  // Case 2: the user wants to change only the sauce information, but not the image
+  else {
+    const sauceObject = { ...req.body };
+    Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id })
+    .then(() => res.status(200).json({ message: 'The sauce has been successfully updated!'}))
     .catch(error => res.status(400).json({ error }));
-};
+  }
+}
 
 
 //------------------------------------
@@ -62,18 +106,18 @@ exports.deleteSauce = (req, res, next) => {
     .then( sauce => {
       // Case 1: the specified sauce is not in the database
       if (!sauce) {
-        return res.status(404).json({ error: new Error('Pas de Sauce !') });
+        return res.status(404).json({ error: new Error('No sauce!') });
       }
       // Case 2: the specified sauce exists but does not belong to the person requesting its removal
       if (sauce.userId !== req.auth.userId) {
-        return res.status(401).json({ error: new Error('Requête non autorisée !') });
+        return res.status(401).json({ error: new Error('Request not allowed!') });
       }
       // Case 3: the specified sauce exists and belongs to the person requesting its removal
       // In this case, the sauce image in the /images folder must be removed as well
       const filename = sauce.imageUrl.split('/images/')[1];
       fs.unlink(`images/${filename}`, () => {
         Sauce.deleteOne({ _id: req.params.id })
-          .then(() => res.status(200).json({ message: 'Sauce supprimée !'}))
+          .then(() => res.status(200).json({ message: 'The sauce was successfully removed!'}))
           .catch(error => res.status(400).json({ error }));
       });
     })

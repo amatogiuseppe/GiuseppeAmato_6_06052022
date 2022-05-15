@@ -18,11 +18,11 @@ module.exports = (req, res, next) => {
     req.auth = { userId };
     // token checking
     if (req.body.userId && req.body.userId !== userId) {
-      throw 'User ID non valable !';
+      throw 'Invalid User ID!';
     } else {
       next();
     }
   } catch {
-    res.status(401).json({ error: new Error('Requête non valide') });
+    res.status(401).json({ error: new Error('Request not allowed!') });
   }
 };
