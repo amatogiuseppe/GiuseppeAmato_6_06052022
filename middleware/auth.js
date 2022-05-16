@@ -2,8 +2,12 @@
 //  Authentication middleware: to authenticate each request
 //================================================================================
 
-// Required module
+// Required modules
 const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
+//Configuring Dotenv
+dotenv.config();
 
 //------------------------------------
 //  Authentication configuration
@@ -12,7 +16,7 @@ module.exports = (req, res, next) => {
   try {
     // decoding the token
     const token = req.headers.authorization.split(' ')[1];
-    const decodedToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET');
+    const decodedToken = jwt.verify(token, process.env.SECRET_TOKEN_KEY);
     const userId = decodedToken.userId;
     // An object containing the userID is added to the request to prevent security holes in the DELETE controller
     req.auth = { userId };

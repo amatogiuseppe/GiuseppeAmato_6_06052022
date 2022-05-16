@@ -5,19 +5,27 @@
 // Required modules
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+const cryptoJs = require('crypto-js');
 
 const User = require('../models/User');
+
+//Configuring Dotenv
+dotenv.config();
+
 
 //------------------------------------
 //  User sign-up
 //------------------------------------
 exports.signup = (req, res, next) => {
+  // encrypting the email entered by the user
+  const encryptedEmail = cryptoJs.HmacSHA256(req.body.email, process.env.SECRET_EMAIL_KEY).toString();
   // using bcrypt to salt the password ten times
   bcrypt.hash(req.body.password, 10)
     .then(hash => {
       // creating a new user
       const user = new User({
-        email: req.body.email,
+        email: encryptedEmail,
         password: hash
       });
       // saving the new user in the database
@@ -28,12 +36,15 @@ exports.signup = (req, res, next) => {
     .catch(error => res.status(500).json({ error }));
 };
 
+
 //------------------------------------
 //  User login
 //------------------------------------
 exports.login = (req, res, next) => {
+  // encrypting the email entered by the user
+  const encryptedEmail = cryptoJs.HmacSHA256(req.body.email, process.env.SECRET_EMAIL_KEY).toString();
   // the mongoose model checks that the email input by the user corresponds to a user in the database
-  User.findOne({ email: req.body.email })
+  User.findOne({ email: encryptedEmail })
     .then(user => {
       // Case 1: the user was not found
       if (!user) {
@@ -52,7 +63,7 @@ exports.login = (req, res, next) => {
             // encoding a new token
             token: jwt.sign(
               { userId: user._id },
-              'RANDOM_TOKEN_SECRET',
+              process.env.SECRET_TOKEN_KEY,
               { expiresIn: '24h' }
             )
           });

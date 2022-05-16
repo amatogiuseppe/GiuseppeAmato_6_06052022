@@ -6,14 +6,19 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require("express-rate-limit");
+const mongoSanitize = require('express-mongo-sanitize');
 
 const sauceRoutes = require('./routes/sauce');
 const userRoutes = require('./routes/user');
 
+//Configuring Dotenv
+dotenv.config();
+
 // Connecting the application to the database using mongoose
-mongoose.connect('mongodb+srv://joe:lxdWWx7loKn9ul9v@cluster0.olfbz.mongodb.net/myFirstDatabase?retryWrites=true&w=majority',
-  { useNewUrlParser: true,
-    useUnifiedTopology: true })
+mongoose.connect(process.env.DB_CONNECTION_STRING, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connexion à MongoDB réussie !'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
@@ -27,6 +32,19 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   next();
 });
+
+// Middleware to protect the application from certain web vulnerabilities by modifying HTTP headers appropriately
+app.use(helmet());
+
+// Middleware to protect the application and clean up the request body by avoiding data injections
+app.use(mongoSanitize());
+
+// Middleware to protect the application and limit the number of requests made by a user for a given period of time
+app.use(rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: "Too many request from this IP"
+}));
 
 // Middleware to handle the POST request and extract the JSON body
 app.use(express.json());

@@ -5,6 +5,10 @@
 // Required modules
 const http = require('http');
 const app = require('./app');
+const dotenv = require('dotenv');
+
+//Configuring Dotenv
+dotenv.config();
 
 // The normalizePort function returns a valid port, whether supplied as a number or a string
 const normalizePort = val => {
