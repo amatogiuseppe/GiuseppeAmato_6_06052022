@@ -31,36 +31,39 @@ exports.createSauce = (req, res, next) => {
 exports.likeSauce = (req, res, next) => {
   Sauce.findOne({ _id: req.params.id })
     .then( sauce => {
-      // Case 1: the user puts a like
-      if (req.body.like == 1) {
-        if (!sauce.usersLiked.includes(req.body.userId) && !sauce.usersDisliked.includes(req.body.userId)) {
-          sauce.usersLiked.push(req.body.userId);
-          sauce.likes++;
-        }
+      switch (req.body.like) {
+        // Case in which the user puts a like
+        case 1:
+          if (!sauce.usersLiked.includes(req.body.userId) && !sauce.usersDisliked.includes(req.body.userId)) {
+            Sauce.updateOne({ _id: req.params.id }, { $inc: { likes: +1 }, $push: { usersLiked: req.body.userId } })
+              .then(() => res.status(200).json({ message: "Your like has been added!" }))
+              .catch((error) => res.status(400).json({ error }));
+          }
+        break;
+        // Case in which the user removes his like or dislike
+        case 0:
+          if (sauce.usersLiked.includes(req.body.userId)) {
+            Sauce.updateOne({ _id: req.params.id }, { $inc: { likes: -1 }, $pull: { usersLiked: req.body.userId } })
+              .then(() => res.status(200).json({ message: "Your like has been removed!" }))
+              .catch((error) => res.status(400).json({ error }));
+          }
+          if (sauce.usersDisliked.includes(req.body.userId)) {
+            Sauce.updateOne({ _id: req.params.id }, { $inc: { dislikes: -1 }, $pull: { usersDisliked: req.body.userId } })
+              .then(() => res.status(200).json({ message: "Your dislike has been removed!" }))
+              .catch((error) => res.status(400).json({ error }));
+          }
+        break;
+        // Case in which the user puts a dislike
+        case -1:
+          if (!sauce.usersLiked.includes(req.body.userId) && !sauce.usersDisliked.includes(req.body.userId)) {
+            Sauce.updateOne({ _id: req.params.id }, { $inc: { dislikes: +1 }, $push: { usersDisliked: req.body.userId } })
+              .then(() => res.status(200).json({ message: "Your dislike has been added!" }))
+              .catch((error) => res.status(400).json({ error }));
+          }
+        break;
+        default:
+          console.log('There is an error in the request!');
       }
-      // Case 2: the user removes his like or dislike
-      if (req.body.like == 0) {
-        if (sauce.usersLiked.includes(req.body.userId)) {
-          let usersLikedIndex = sauce.usersLiked.indexOf(req.body.userId);
-          sauce.usersLiked.splice(usersLikedIndex, 1);
-          sauce.likes--;
-        } else if (sauce.usersDisliked.includes(req.body.userId)) {
-          let usersDislikedIndex = sauce.usersDisliked.indexOf(req.body.userId);
-          sauce.usersDisliked.splice(usersDislikedIndex, 1);
-          sauce.dislikes--;
-        }
-      }
-      // Case 3: the user puts a dislike
-      if (req.body.like == -1) {
-        if (!sauce.usersLiked.includes(req.body.userId) && !sauce.usersDisliked.includes(req.body.userId)) {
-          sauce.usersDisliked.push(req.body.userId);
-          sauce.dislikes++;
-        }
-      }
-      // Updating the sauce
-      Sauce.updateOne({ _id: req.params.id }, sauce)
-        .then(() => res.status(200).json({ message: "The opinion about the sauce has been taken into account!"}))
-        .catch(error => res.status(400).json({ error }));
     })
     .catch(error => res.status(500).json({ error }));
 };
@@ -94,7 +97,7 @@ exports.modifySauce = (req, res, next) => {
     .then(() => res.status(200).json({ message: 'The sauce has been successfully updated!'}))
     .catch(error => res.status(400).json({ error }));
   }
-}
+};
 
 
 //------------------------------------
@@ -142,4 +145,4 @@ exports.getAllSauce = (req, res, next) => {
   Sauce.find()
     .then(sauces => res.status(200).json(sauces))
     .catch(error => res.status(400).json({ error }));
-}
+};

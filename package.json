@@ -4,7 +4,7 @@
   "description": "OpenClassrooms - Project 6 of the Web Development training course: building a secure API for a food review application",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Giuseppe Amato",
